@@ -18,6 +18,7 @@ def configure(url_template, url_pages, xpath, extractor, sleep_time=0):
         Time in seconds to wait before starting the xpath extraction
     '''
 
+    # Generate all urls to iterate through
     urls = [url_template.replace("{NUM}", str(page_num)) for page_num in url_pages]
     ips, ports, protocols, countries = [], [], [], []
 
@@ -47,7 +48,14 @@ def configure(url_template, url_pages, xpath, extractor, sleep_time=0):
               (len(ips), len(ports), len(protocols), len(countries)))
         exit()
 
-    print(ips)
-    print(ports)
-    print(protocols)
-    print(countries)
+
+    if len(ips) == 0:
+        print("Something went wrong, there are no proxies fetched...")
+        print(driver.page_source)
+        exit()
+    else:
+        print(ips)
+        print(ports)
+        print(protocols)
+        print(countries)
+        print("Fetched total %s proxies" % len(ips))
