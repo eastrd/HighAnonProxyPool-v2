@@ -1,4 +1,4 @@
-from scraper import configure
+from framework import configure
 
 
 # Genearlize URL template to hold all proxy urls
