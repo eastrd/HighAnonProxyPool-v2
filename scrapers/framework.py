@@ -2,7 +2,7 @@ from selenium import webdriver
 from time import sleep
 
 
-def configure(url_template, url_pages, xpath, extractor, sleep_time=0):
+def scrape(url_template, url_pages, xpath, extractor, sleep_before_scrape=0):
     '''Function for configuring metrics and scraping the target website via given defined rules.
     Parameters
     ----------
@@ -16,8 +16,11 @@ def configure(url_template, url_pages, xpath, extractor, sleep_time=0):
         Used for further extraction for strings extracted from the xpath rules
     sleep_time : integer
         Time in seconds to wait before starting the xpath extraction
-    '''
 
+    Return
+    ---------
+    Proxy information as a list of dict objects
+    '''
     # Generate all urls to iterate through
     urls = [url_template.replace("{NUM}", str(page_num)) for page_num in url_pages]
     ips, ports, protocols, countries = [], [], [], []
@@ -29,9 +32,10 @@ def configure(url_template, url_pages, xpath, extractor, sleep_time=0):
     driver.set_window_size(1920, 1080)
 
     for url in urls:
+        print("Fetching %s" % url)
         driver.get(url)
 
-        sleep(sleep_time)
+        sleep(sleep_before_scrape)
 
         ips += [extractor["ip"](ip_element.text)
                 for ip_element in driver.find_elements_by_xpath(xpath["ip"])]
@@ -42,20 +46,41 @@ def configure(url_template, url_pages, xpath, extractor, sleep_time=0):
         countries += [extractor["country"](country_element.text)
                 for country_element in driver.find_elements_by_xpath(xpath["country"])]
 
-
     if len(ips) != len(ports) != len(protocols) != len(countries):
         print("Error! Number of data fields collected mismatch: %s %s %s %s" %
               (len(ips), len(ports), len(protocols), len(countries)))
         exit()
-
 
     if len(ips) == 0:
         print("Something went wrong, there are no proxies fetched...")
         print(driver.page_source)
         exit()
     else:
-        print(ips)
-        print(ports)
-        print(protocols)
-        print(countries)
         print("Fetched total %s proxies" % len(ips))
+        return _make_dicts(ips, ports, protocols, countries)
+
+
+
+def _make_dicts(ips, ports, protocols, countries):
+    '''Generate a list of dict objects based on ips, ports, protocols and countries:
+        [
+            {
+                "ip"        :,
+                "port"      :,
+                "protocol"  :,
+                "country"   :
+            },
+        ]
+    '''
+    proxy_list = [{
+            "ip":   ips[i],
+            "port":   ports[i],
+            "protocol":   protocols[i],
+            "country":   countries[i]
+        }
+        for i in range(0, len(ips))
+    ]
+
+    return proxy_list
+
+
