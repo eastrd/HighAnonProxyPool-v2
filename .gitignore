@@ -1,0 +1,6 @@
+
+\.vscode/
+
+ghostdriver\.log
+
+scrapers/__pycache__/
