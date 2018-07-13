@@ -1,4 +1,4 @@
-from framework import configure
+from framework import scrape
 
 
 # Genearlize URL template to hold all proxy urls
@@ -24,4 +24,4 @@ extractor = {
     "country"   :   lambda text: text,
 }
 
-configure(url_template, url_pages, xpath, extractor)
+scrape(url_template, url_pages, xpath, extractor)
