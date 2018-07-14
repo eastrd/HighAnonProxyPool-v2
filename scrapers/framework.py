@@ -1,6 +1,6 @@
 from selenium import webdriver
 from time import sleep
-
+from loglib import log_print
 
 def scrape(url_template, url_pages, xpath, extractor, sleep_before_scrape=0):
     '''Function for configuring metrics and scraping the target website via given defined rules.
@@ -21,18 +21,19 @@ def scrape(url_template, url_pages, xpath, extractor, sleep_before_scrape=0):
     ---------
     Proxy information as a list of dict objects
     '''
+    log_print("Scraping starts...")
     # Generate all urls to iterate through
     urls = [url_template.replace("{NUM}", str(page_num)) for page_num in url_pages]
     ips, ports, protocols, countries = [], [], [], []
 
     # Init Chrome Webdriver
-    driver = webdriver.PhantomJS()
+    driver = webdriver.PhantomJS(service_args=["--webdriver-loglevel=NONE"])
 
     # Set Viewport
     driver.set_window_size(1920, 1080)
 
     for url in urls:
-        print("Fetching %s" % url)
+        log_print("Fetching " + url)
         driver.get(url)
 
         sleep(sleep_before_scrape)
@@ -47,16 +48,15 @@ def scrape(url_template, url_pages, xpath, extractor, sleep_before_scrape=0):
                 for country_element in driver.find_elements_by_xpath(xpath["country"])]
 
     if len(ips) != len(ports) != len(protocols) != len(countries):
-        print("Error! Number of data fields collected mismatch: %s %s %s %s" %
-              (len(ips), len(ports), len(protocols), len(countries)))
+        log_print("Error! Number of data fields collected mismatch: " + str(len(ips)) + " "+ str(len(ports)) + " " + str(len(protocols)) + str(len(countries)))
         exit()
 
     if len(ips) == 0:
-        print("Something went wrong, there are no proxies fetched...")
-        print(driver.page_source)
+        log_print("Something went wrong, there are no proxies fetched...")
+        log_print(driver.page_source)
         exit()
     else:
-        print("Fetched total %s proxies" % len(ips))
+        log_print("Fetched total " + str(len(ips)) + " proxies")
         return _make_dicts(ips, ports, protocols, countries)
 
 

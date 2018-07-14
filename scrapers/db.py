@@ -1,10 +1,11 @@
 from pymongo import MongoClient
+from loglib import log_print
 
 
 def save_new_proxy_record(one_proxy_dict_data):
     '''Examine the given single proxy dict object and store into "new" collection
     '''
-    print("Connect to MongoDB...")
+    log_print("Connect to MongoDB...")
     client = MongoClient("149.28.195.244", 27017, authSource='admin',
                          username="xiaoyu", password="Jianyuhao123$")
 
@@ -19,6 +20,6 @@ def save_new_proxy_record(one_proxy_dict_data):
         return
 
     # Since this ip is new, then store this proxy data in "new" collection, and store only its ip in all storage
-    print("Store %s" % one_proxy_dict_data["ip"])
+    log_print("Store " + one_proxy_dict_data["ip"])
     new_storage.insert(one_proxy_dict_data)
     all_storage.insert({"ip" : one_proxy_dict_data["ip"]})
