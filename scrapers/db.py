@@ -17,7 +17,8 @@ def save_new_proxy_record(one_proxy_dict_data):
 
     # If historical collection contains the proxy information (Key: ip), then ignore
     if len([i for i in all_storage.find({"ip": one_proxy_dict_data["ip"]})]) > 0:
-        log_print("Found duplicate proxy for %s, ignore..." + one_proxy_dict_data["ip"])
+        log_print("Found duplicate proxy for " +
+                  one_proxy_dict_data["ip"] + ", ignore...")
     else:
         # Since this ip is new, then store this proxy data in "new" collection, and store only its ip in all storage
         log_print("Store " + one_proxy_dict_data["ip"])
