@@ -36,5 +36,5 @@ while True:
         save_new_proxy_record(proxy_dict)
 
     log_print("Finished one round of scraping, sleep for " +
-              str(time_interval) + "seconds")
+              str(time_interval) + " seconds")
     sleep(time_interval)
