@@ -22,6 +22,7 @@ def scrape(url_template, url_pages, xpath, extractor, sleep_before_scrape=0):
     Proxy information as a list of dict objects
     '''
     log_print("Scraping starts...")
+    
     # Generate all urls to iterate through
     urls = [url_template.replace("{NUM}", str(page_num)) for page_num in url_pages]
     ips, ports, protocols, countries = [], [], [], []
@@ -46,6 +47,9 @@ def scrape(url_template, url_pages, xpath, extractor, sleep_before_scrape=0):
                 for protocol_element in driver.find_elements_by_xpath(xpath["protocol"])]
         countries += [extractor["country"](country_element.text)
                 for country_element in driver.find_elements_by_xpath(xpath["country"])]
+
+    # Close the selenium driver to prevent memory leaking
+    driver.close()
 
     if len(ips) != len(ports) != len(protocols) != len(countries):
         log_print("Error! Number of data fields collected mismatch: " + str(len(ips)) + " "+ str(len(ports)) + " " + str(len(protocols)) + str(len(countries)))
