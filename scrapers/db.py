@@ -2,13 +2,14 @@ from pymongo import MongoClient
 from loglib import log_print
 
 
+log_print("Initialize MongoDB Connection...")
+client = MongoClient("149.28.195.244", 27017, authSource='admin',
+                        username="xiaoyu", password="Jianyuhao123$")
+
+
 def save_new_proxy_record(one_proxy_dict_data):
     '''Examine the given single proxy dict object and store into "new" collection
     '''
-    log_print("Connect to MongoDB...")
-    client = MongoClient("149.28.195.244", 27017, authSource='admin',
-                         username="xiaoyu", password="Jianyuhao123$")
-
     db = client["proxypool"]
 
     new_storage = db["new"]
