@@ -1,6 +1,7 @@
 from framework import scrape
 from db import save_new_proxy_record
 from time import sleep
+from loglib import log_print
 
 time_interval = 60 * 10
 
@@ -34,4 +35,5 @@ while True:
     for proxy_dict in proxy_list_of_dicts:
         save_new_proxy_record(proxy_dict)
         
+    log_print("Finished one round of scraping, sleep for " + str(time_interval) + "seconds")
     sleep(time_interval)
