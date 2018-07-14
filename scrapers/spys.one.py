@@ -1,5 +1,8 @@
 from framework import scrape
+from db import save_new_proxy_record
+from time import sleep
 
+time_interval = 60 * 10
 
 # Genearlize URL template to hold all proxy urls
 url_template = "http://spys.one/en/anonymous-proxy-list/{NUM}"
@@ -24,4 +27,11 @@ extractor = {
     "country"   :   lambda text: text,
 }
 
-scrape(url_template, url_pages, xpath, extractor)
+
+while True:
+    proxy_list_of_dicts = scrape(url_template, url_pages, xpath, extractor)
+
+    for proxy_dict in proxy_list_of_dicts:
+        save_new_proxy_record(proxy_dict)
+        
+    sleep(time_interval)

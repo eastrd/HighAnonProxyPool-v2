@@ -1,5 +1,8 @@
 from framework import scrape
+from db import save_new_proxy_record
+from time import sleep
 
+time_interval = 60 * 10
 
 # Genearlize URL template to hold all proxy urls
 url_template = "https://hidemy.name/en/proxy-list/?type=hs&anon=4&start={NUM}#list"
@@ -24,4 +27,10 @@ extractor = {
     "country"   :   lambda text: text.strip(),
 }
 
-scrape(url_template, url_pages, xpath, extractor, 10)
+while True:
+    proxy_list_of_dicts = scrape(url_template, url_pages, xpath, extractor, sleep_before_scrape=10)
+
+    for proxy_dict in proxy_list_of_dicts:
+        save_new_proxy_record(proxy_dict)
+
+    sleep(time_interval)
