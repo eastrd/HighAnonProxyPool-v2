@@ -21,6 +21,9 @@ def save_new_proxy_record(one_proxy_dict_data):
                   one_proxy_dict_data["ip"] + ", ignore...")
     else:
         # Since this ip is new, then store this proxy data in "new" collection, and store only its ip in all storage
+        if one_proxy_dict_data["protocol"].upper() not in ["HTTP", "HTTPS"]:
+            # Ignore if it's SOCKS protocol
+            return
         log_print("Store " + one_proxy_dict_data["ip"])
         new_storage.insert(one_proxy_dict_data)
         all_storage.insert({"ip" : one_proxy_dict_data["ip"]})
