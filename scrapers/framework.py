@@ -48,6 +48,8 @@ def scrape(url_template, url_pages, xpath, extractor, sleep_before_scrape=0):
         countries += [extractor["country"](country_element.text)
                 for country_element in driver.find_elements_by_xpath(xpath["country"])]
 
+    html = driver.page_source
+
     # Close the selenium driver to prevent memory leaking
     driver.close()
 
@@ -57,7 +59,7 @@ def scrape(url_template, url_pages, xpath, extractor, sleep_before_scrape=0):
 
     if len(ips) == 0:
         log_print("Something went wrong, there are no proxies fetched...")
-        log_print(driver.page_source)
+        log_print(html)
         exit()
     else:
         log_print("Fetched total " + str(len(ips)) + " proxies")
