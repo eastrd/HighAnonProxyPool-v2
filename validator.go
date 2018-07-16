@@ -18,7 +18,7 @@ import (
 
 var wg sync.WaitGroup
 
-// NewProxy : data tructure for holding the Mongo record
+// NewProxy : data tructure for holding the proxy document in MongoDB
 type NewProxy struct {
 	IP       string `bson:"ip"`
 	Port     string `bson:"port"`
@@ -61,12 +61,44 @@ func displayNumGoroutines() {
 	}
 }
 
-func moveToColdStorage(newProxy NewProxy) {
-	// Insert the proxy into "cold" collection & Remove it from "new" collection
+func moveToHotStorage(newProxy NewProxy, db *mgo.Database) {
+	// Move the given proxy document from New collection to Hot collection
+	defer wg.Done()
 
+	hotC := db.C("hot")
+	newC := db.C("new")
+
+	// Insert the proxy into Hot collection
+	if err := hotC.Insert(newProxy); err != nil {
+		panic(err)
+	}
+
+	// Remove the document from New collection
+	if err := newC.Remove(newProxy); err != nil {
+		panic(err)
+	}
 }
 
-func checkAvailability(newProxy NewProxy, timeoutSeconds time.Duration) {
+func moveToColdStorage(newProxy NewProxy, db *mgo.Database) {
+	// Move the given proxy document from New collection to Cold collection
+	defer wg.Done()
+
+	coldC := db.C("cold")
+	newC := db.C("new")
+
+	// Insert the proxy into Cold collection
+	if err := coldC.Insert(newProxy); err != nil {
+		panic(err)
+	}
+
+	// Remove the document from New collection
+	if err := newC.Remove(newProxy); err != nil {
+		panic(err)
+	}
+}
+
+func checkAvailability(newProxy NewProxy, timeoutSeconds time.Duration, db *mgo.Database) {
+	// Check the connectibility of the given proxy document
 	defer wg.Done()
 
 	// Use the given proxy to make a request to the given server
@@ -78,11 +110,12 @@ func checkAvailability(newProxy NewProxy, timeoutSeconds time.Duration) {
 
 	proxyURL, err := url.Parse(strings.ToLower(newProxy.Protocol) + "://" + newProxy.IP + ":" + newProxy.Port)
 	if err != nil {
+		// Likely to be malformed URL
 		fmt.Println(err)
 		return
 	}
 
-	// Timeout in 10 seconds for each request
+	// Timeout settings for different stages of the connection
 	client := &http.Client{
 		Timeout: time.Duration(timeoutSeconds * time.Second),
 		Transport: &http.Transport{
@@ -98,14 +131,19 @@ func checkAvailability(newProxy NewProxy, timeoutSeconds time.Duration) {
 
 	res, err := client.Do(req)
 	if err != nil {
-		// Proxy is not available, move to cold storage
+		// Proxy is somewhat not available, move to cold storage
 		fmt.Println(err)
+		wg.Add(1)
+		fmt.Println("Cold Storage:", newProxy.IP)
+		go moveToColdStorage(newProxy, db)
 		return
 	}
 
 	defer res.Body.Close()
+
 	// body, _ := ioutil.ReadAll(res.Body)
 	// fmt.Println(string(body))
+	fmt.Println("Okay", newProxy.IP)
 }
 
 func useProxies(db *mgo.Database) {
@@ -113,22 +151,22 @@ func useProxies(db *mgo.Database) {
 		Iterate through all of the new proxies and use them to send request to the Go server.
 		If unavailable, remove them from the new collection.
 	*/
-	collection := db.C("new")
+	newC := db.C("new")
 
 	var newProxy NewProxy
 
-	iter := collection.Find(nil).Iter()
+	iter := newC.Find(nil).Iter()
 
-	// i := 1
+	i := 1
 	for iter.Next(&newProxy) {
 		for runtime.NumGoroutine() > 60 {
 			// Limit the number of concurrent sockets connections
 			time.Sleep(time.Second * 1)
 		}
-		// fmt.Println("#", i)
+		fmt.Println("#", i)
 		wg.Add(1)
-		go checkAvailability(newProxy, 4)
-		// i++
+		go checkAvailability(newProxy, 4, db)
+		i++
 	}
 }
 
