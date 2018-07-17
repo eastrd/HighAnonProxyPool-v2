@@ -2,6 +2,27 @@ from selenium import webdriver
 from time import sleep
 from loglib import log_print
 
+
+def check_protocol(protocol):
+    '''Convert any protocol fields into HTTP or HTTPS, abort SOCKS-only fields.
+    
+    Parameter:
+    ---------
+    protocol: String
+    
+    Return:
+    ---------
+    - "HTTP"
+    - "HTTPS"
+    - None otherwise
+    '''
+    protocol = protocol.lower()
+    if "https" in protocol:
+        return "https"
+    elif "http" in protocol:
+        return "http"
+    return None
+
 def scrape(url_template, url_pages, xpath, extractor, sleep_before_scrape=0):
     '''Function for configuring metrics and scraping the target website via given defined rules.
     Parameters
@@ -48,6 +69,7 @@ def scrape(url_template, url_pages, xpath, extractor, sleep_before_scrape=0):
         countries += [extractor["country"](country_element.text)
                 for country_element in driver.find_elements_by_xpath(xpath["country"])]
 
+
     html = driver.page_source
 
     # Close the selenium driver to prevent memory leaking
@@ -61,9 +83,26 @@ def scrape(url_template, url_pages, xpath, extractor, sleep_before_scrape=0):
         log_print("Something went wrong, there are no proxies fetched...")
         log_print(html)
         exit()
-    else:
-        log_print("Fetched total " + str(len(ips)) + " proxies")
-        return _make_dicts(ips, ports, protocols, countries)
+
+    index_to_be_deleted = []
+    
+    # Filters out the proxies that only supports SOCKS protocol
+    for i in range(len(ips)):
+        protocol = check_protocol(protocols[i])
+        if not protocol:
+            index_to_be_deleted.append(i)
+        else:
+            protocols[i] = protocol
+
+    # Iterate through indexes and delete them
+    for i in index_to_be_deleted:
+        del ips[i]
+        del ports[i]
+        del protocols[i]
+        del countries[i]
+            
+    log_print("Fetched total " + str(len(ips)) + " proxies")
+    return _make_dicts(ips, ports, protocols, countries)
 
 
 
