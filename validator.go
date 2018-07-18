@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -66,12 +67,20 @@ func moveToHotStorage(newProxy NewProxy, db *mgo.Database) {
 	defer wg.Done()
 
 	hotC := db.C("hot")
-	newC := db.C("new")
 
 	// Insert the proxy into Hot collection
 	if err := hotC.Insert(newProxy); err != nil {
 		panic(err)
 	}
+
+	removeFromNewCollection(newProxy, db)
+}
+
+func removeFromNewCollection(newProxy NewProxy, db *mgo.Database) {
+	wg.Add(1)
+	defer wg.Done()
+
+	newC := db.C("new")
 
 	// Remove the document from New collection
 	if err := newC.Remove(newProxy); err != nil {
@@ -84,17 +93,13 @@ func moveToColdStorage(newProxy NewProxy, db *mgo.Database) {
 	defer wg.Done()
 
 	coldC := db.C("cold")
-	newC := db.C("new")
 
 	// Insert the proxy into Cold collection
 	if err := coldC.Insert(newProxy); err != nil {
 		panic(err)
 	}
 
-	// Remove the document from New collection
-	if err := newC.Remove(newProxy); err != nil {
-		panic(err)
-	}
+	removeFromNewCollection(newProxy, db)
 }
 
 func checkAvailability(newProxy NewProxy, timeoutSeconds time.Duration, db *mgo.Database) {
@@ -102,16 +107,14 @@ func checkAvailability(newProxy NewProxy, timeoutSeconds time.Duration, db *mgo.
 	defer wg.Done()
 
 	// Use the given proxy to make a request to the given server
-	req, err := http.NewRequest("GET", "https://api.ipify.org/", nil)
+	req, err := http.NewRequest("GET", "http://149.28.181.216/checkproxy", nil)
 	if err != nil {
-		fmt.Println(err)
 		return
 	}
 
 	proxyURL, err := url.Parse(strings.ToLower(newProxy.Protocol) + "://" + newProxy.IP + ":" + newProxy.Port)
 	if err != nil {
 		// Likely to be malformed URL
-		fmt.Println(err)
 		return
 	}
 
@@ -132,18 +135,23 @@ func checkAvailability(newProxy NewProxy, timeoutSeconds time.Duration, db *mgo.
 	res, err := client.Do(req)
 	if err != nil {
 		// Proxy is somewhat not available, move to cold storage
-		fmt.Println(err)
 		wg.Add(1)
-		fmt.Println("Cold Storage:", newProxy.IP)
 		go moveToColdStorage(newProxy, db)
 		return
 	}
 
 	defer res.Body.Close()
 
-	// body, _ := ioutil.ReadAll(res.Body)
-	// fmt.Println(string(body))
-	fmt.Println("Okay", newProxy.IP)
+	body, _ := ioutil.ReadAll(res.Body)
+	if string(body) == newProxy.IP {
+		// Proxy's real IP is hidden. Move to Hot storage
+		wg.Add(1)
+		go moveToHotStorage(newProxy, db)
+	} else {
+		// Proxy connection successful, but its IP is not high anonymous or its response is blocked by its ISP.
+		// Hence delete this proxy from database.
+		go removeFromNewCollection(newProxy, db)
+	}
 }
 
 func useProxies(db *mgo.Database) {
@@ -159,23 +167,18 @@ func useProxies(db *mgo.Database) {
 
 	i := 1
 	for iter.Next(&newProxy) {
-		for runtime.NumGoroutine() > 60 {
+		for runtime.NumGoroutine() > 20 {
 			// Limit the number of concurrent sockets connections
 			time.Sleep(time.Second * 1)
 		}
 		fmt.Println("#", i)
 		wg.Add(1)
-		go checkAvailability(newProxy, 4, db)
+		go checkAvailability(newProxy, 5, db)
 		i++
 	}
 }
 
 func main() {
-	// Start the server for profiling
-	go func() {
-		log.Println(http.ListenAndServe("localhost:6060", nil))
-	}()
-
 	mongoSession := connectDB()
 	defer mongoSession.Close()
 	db := mongoSession.DB("proxypool")
