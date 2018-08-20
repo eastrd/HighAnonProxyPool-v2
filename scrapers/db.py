@@ -3,8 +3,8 @@ from loglib import log_print
 
 
 log_print("Initialize MongoDB Connection...")
-client = MongoClient("149.28.195.244", 27017, authSource='admin',
-                        username="xiaoyu", password="Jianyuhao123$")
+client = MongoClient("", 27017, authSource='admin',
+                        username="", password="")
 
 
 def save_new_proxy_record(one_proxy_dict_data):

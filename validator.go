@@ -28,10 +28,10 @@ type NewProxy struct {
 }
 
 const (
-	mongoDBHosts = "149.28.195.244"
+	mongoDBHosts = ""
 	authDatabase = "admin"
-	authUserName = "xiaoyu"
-	authPassword = "Jianyuhao123$"
+	authUserName = ""
+	authPassword = ""
 )
 
 func connectDB() *mgo.Session {
